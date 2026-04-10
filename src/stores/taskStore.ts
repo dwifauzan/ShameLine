@@ -59,7 +59,7 @@ export const useTaskStore = create<TaskState>()(
         set((state) => ({
           tasks: state.tasks.map((task) =>
             task.id === id
-              ? { ...task, status: 'archived' as TaskStatus, givenUp: true }
+              ? { ...task, status: 'archived' as TaskStatus, givenUp: true, completedAt: Date.now() }
               : task
           ),
         }));
