@@ -200,7 +200,7 @@ export default function TasksScreen() {
   const [taskName, setTaskName] = useState('');
   const [day, setDay] = useState('');
   const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
+  const [year, setYear] = useState(new Date().getFullYear().toString());
   const [hour, setHour] = useState('');
   const [minute, setMinute] = useState('');
   const [difficulty, setDifficulty] = useState(50);
@@ -291,7 +291,7 @@ export default function TasksScreen() {
     setTaskName('');
     setDay('');
     setMonth('');
-    setYear('');
+    setYear(new Date().getFullYear().toString());
     setHour('');
     setMinute('');
     setDifficulty(50);
@@ -360,31 +360,31 @@ export default function TasksScreen() {
     closeModal();
   }, [taskName, parseDeadline, selectedPunishmentId, difficulty, addTask, incrementUseCount, computeStats, closeModal]);
 
-  // --- Segmented input helper ---
-  const segStyle = styles.segInput;
-  const segOnFocus = (nextRef: React.RefObject<TextInput | null>) => ({
-    onFocus: () => nextRef.current?.focus(),
-  });
-
   const noTasks = activeTasks.length === 0 && completedTasks.length === 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 80 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBarHeight + 100 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.title}>{t('tasks.title')}</Text>
 
         {noTasks && (
-          <Text style={styles.emptyText}>{t('tasks.empty')}</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>\uD83D\uDCCB</Text>
+            <Text style={styles.emptyText}>{t('tasks.empty')}</Text>
+          </View>
         )}
 
         {activeTasks.length > 0 && (
           <>
-            <Text style={styles.sectionHeader}>
-              {t('tasks.activeTasks')} ({activeTasks.length})
-            </Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>{t('tasks.activeTasks')}</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{activeTasks.length}</Text>
+              </View>
+            </View>
             {activeTasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -401,12 +401,15 @@ export default function TasksScreen() {
         {completedTasks.length > 0 && (
           <>
             <Pressable
-              style={styles.sectionHeaderRow}
+              style={[styles.sectionHeaderRow, { marginTop: 24 }]}
               onPress={() => setCompletedExpanded((e) => !e)}
             >
-              <Text style={styles.sectionHeader}>
-                {t('tasks.completedTasks')} ({completedTasks.length})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.sectionHeader}>{t('tasks.completedTasks')}</Text>
+                <View style={[styles.countBadge, { backgroundColor: '#e0e0e0' }]}>
+                  <Text style={[styles.countBadgeText, { color: '#777' }]}>{completedTasks.length}</Text>
+                </View>
+              </View>
               <Text style={styles.chevron}>{completedExpanded ? '\u25B2' : '\u25BC'}</Text>
             </Pressable>
             {completedExpanded &&
@@ -425,170 +428,241 @@ export default function TasksScreen() {
       </ScrollView>
 
       {/* FAB */}
-      <Pressable style={[styles.fab, { bottom: tabBarHeight + 16 }]} onPress={openModal}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom: tabBarHeight + 20 },
+          pressed && { transform: [{ scale: 0.95 }], opacity: 0.9 }
+        ]}
+        onPress={openModal}
+      >
         <Text style={styles.fabText}>+</Text>
       </Pressable>
 
       {/* Add Task Modal */}
       <Modal visible={modalVisible} transparent animationType="slide" onRequestClose={closeModal}>
-        <Pressable style={styles.modalOverlay} onPress={closeModal}>
+        <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.modalContainer}
           >
-            <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHandle} />
                 <Text style={styles.modalTitle}>{t('tasks.addTask')}</Text>
+              </View>
 
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={styles.modalScroll}
+              >
                 {/* Task Name */}
-                <Text style={styles.label}>{t('tasks.taskName')}</Text>
-                <TextInput
-                  ref={nameRef}
-                  style={styles.textInput}
-                  placeholder={t('tasks.taskNamePlaceholder')}
-                  value={taskName}
-                  onChangeText={setTaskName}
-                  returnKeyType="next"
-                  onSubmitEditing={() => dayRef.current?.focus()}
-                />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('tasks.taskName')}</Text>
+                  <TextInput
+                    ref={nameRef}
+                    style={styles.textInput}
+                    placeholder={t('tasks.taskNamePlaceholder')}
+                    value={taskName}
+                    onChangeText={setTaskName}
+                    placeholderTextColor="#bbb"
+                  />
+                </View>
 
                 {/* Deadline */}
-                <Text style={styles.label}>{t('tasks.deadline')}</Text>
-                <View style={styles.dateRow}>
-                  <TextInput
-                    ref={dayRef}
-                    style={[segStyle, styles.segShort]}
-                    placeholder="DD"
-                    value={day}
-                    onChangeText={setDay}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    returnKeyType="next"
-                    onSubmitEditing={() => monthRef.current?.focus()}
-                  />
-                  <Text style={styles.sep}>/</Text>
-                  <TextInput
-                    ref={monthRef}
-                    style={[segStyle, styles.segShort]}
-                    placeholder="MM"
-                    value={month}
-                    onChangeText={setMonth}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    returnKeyType="next"
-                    onSubmitEditing={() => yearRef.current?.focus()}
-                  />
-                  <Text style={styles.sep}>/</Text>
-                  <TextInput
-                    ref={yearRef}
-                    style={[segStyle, styles.segYear]}
-                    placeholder="YYYY"
-                    value={year}
-                    onChangeText={setYear}
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    returnKeyType="next"
-                    onSubmitEditing={() => hourRef.current?.focus()}
-                  />
-                  <Text style={styles.sepWide} />
-                  <TextInput
-                    ref={hourRef}
-                    style={[segStyle, styles.segShort]}
-                    placeholder="HH"
-                    value={hour}
-                    onChangeText={setHour}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    returnKeyType="next"
-                    onSubmitEditing={() => minuteRef.current?.focus()}
-                  />
-                  <Text style={styles.sep}>:</Text>
-                  <TextInput
-                    ref={minuteRef}
-                    style={[segStyle, styles.segShort]}
-                    placeholder="MM"
-                    value={minute}
-                    onChangeText={setMinute}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    returnKeyType="done"
-                  />
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('tasks.deadline')}</Text>
+                  <View style={styles.dateTimeContainer}>
+                    <View style={styles.dateInputs}>
+                      <TextInput
+                        ref={dayRef}
+                        style={styles.dateInput}
+                        placeholder="DD"
+                        value={day}
+                        onChangeText={(val) => {
+                          setDay(val);
+                          if (val.length === 2) monthRef.current?.focus();
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                      />
+                      <Text style={styles.dateSeparator}>/</Text>
+                      <TextInput
+                        ref={monthRef}
+                        style={styles.dateInput}
+                        placeholder="MM"
+                        value={month}
+                        onChangeText={(val) => {
+                          setMonth(val);
+                          if (val.length === 2) yearRef.current?.focus();
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                      />
+                      <Text style={styles.dateSeparator}>/</Text>
+                      <TextInput
+                        ref={yearRef}
+                        style={[styles.dateInput, { width: 60 }]}
+                        placeholder="YYYY"
+                        value={year}
+                        onChangeText={(val) => {
+                          setYear(val);
+                          if (val.length === 4) hourRef.current?.focus();
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={4}
+                      />
+                    </View>
+                    <View style={styles.timeInputs}>
+                      <TextInput
+                        ref={hourRef}
+                        style={styles.dateInput}
+                        placeholder="HH"
+                        value={hour}
+                        onChangeText={(val) => {
+                          setHour(val);
+                          if (val.length === 2) minuteRef.current?.focus();
+                        }}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                      />
+                      <Text style={styles.dateSeparator}>:</Text>
+                      <TextInput
+                        ref={minuteRef}
+                        style={styles.dateInput}
+                        placeholder="MM"
+                        value={minute}
+                        onChangeText={setMinute}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                      />
+                    </View>
+                  </View>
                 </View>
 
                 {/* Difficulty */}
-                <Text style={styles.label}>{t('tasks.difficulty')}</Text>
-                <View style={styles.difficultyPicker}>
-                  {Array.from({ length: 11 }, (_, i) => {
-                    const level = i * 10;
-                    const selected = level === difficulty;
-                    let color = '#27ae60';
-                    if (level > 60) color = '#e74c3c';
-                    else if (level > 30) color = '#f39c12';
-                    return (
-                      <Pressable
-                        key={level}
-                        onPress={() => setDifficulty(level)}
-                        style={[
-                          styles.diffDot,
-                          { backgroundColor: selected ? color : '#e8e8e8', borderColor: selected ? color : '#ccc' },
-                        ]}
-                      >
-                        <Text style={[styles.diffDotLabel, selected && { color: '#fff' }]}>
-                          {level}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+                <View style={styles.inputGroup}>
+                  <View style={styles.labelRow}>
+                    <Text style={styles.label}>{t('tasks.difficulty')}</Text>
+                    <Text style={[styles.difficultyValue, { color: difficulty > 60 ? '#e74c3c' : difficulty > 30 ? '#f39c12' : '#27ae60' }]}>
+                      {difficulty}
+                    </Text>
+                  </View>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.difficultyContainer}
+                  >
+                    {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((level) => {
+                      const selected = level === difficulty;
+                      let color = '#27ae60';
+                      if (level > 60) color = '#e74c3c';
+                      else if (level > 30) color = '#f39c12';
+
+                      return (
+                        <Pressable
+                          key={level}
+                          onPress={() => {
+                            setDifficulty(level);
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          }}
+                          style={[
+                            styles.difficultyOption,
+                            selected && { backgroundColor: color, borderColor: color }
+                          ]}
+                        >
+                          <Text style={[styles.difficultyText, selected && { color: '#fff' }]}>
+                            {level}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
 
                 {/* Punishment */}
-                <Text style={styles.label}>{t('tasks.punishment')}</Text>
-                <Pressable style={styles.punishmentField} onPress={() => setPickerVisible(true)}>
-                  <Text style={selectedPunishment ? styles.punishmentSelected : styles.punishmentPlaceholder}>
-                    {selectedPunishment
-                      ? `${PUNISHMENT_EMOJIS[selectedPunishment.type]} ${selectedPunishment.title}`
-                      : t('tasks.selectPunishment')}
-                  </Text>
-                  <Text style={styles.punishmentArrow}>{'\u25BC'}</Text>
-                </Pressable>
-
-                {/* Actions */}
-                <View style={styles.modalActions}>
-                  <Pressable style={styles.cancelBtn} onPress={closeModal}>
-                    <Text style={styles.cancelBtnText}>{t('common.cancel')}</Text>
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>{t('tasks.punishment')}</Text>
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.punishmentSelector,
+                      pressed && { opacity: 0.7, backgroundColor: '#f0f0f0' }
+                    ]}
+                    onPress={() => setPickerVisible(true)}
+                  >
+                    {selectedPunishment ? (
+                      <View style={styles.selectedPunishmentContent}>
+                        <Text style={styles.punishmentIcon}>
+                          {PUNISHMENT_EMOJIS[selectedPunishment.type]}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.punishmentTitle}>{selectedPunishment.title}</Text>
+                          <Text style={styles.punishmentDesc} numberOfLines={1}>
+                            {selectedPunishment.message}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <Text style={styles.punishmentPlaceholder}>{t('tasks.selectPunishment')}</Text>
+                    )}
+                    <Text style={styles.selectorArrow}>\u203A</Text>
                   </Pressable>
-                  <Pressable style={styles.saveBtn} onPress={handleSave}>
-                    <Text style={styles.saveBtnText}>{t('common.save')}</Text>
+                </View>
+
+                <View style={styles.modalFooter}>
+                  <Pressable style={styles.cancelButton} onPress={closeModal}>
+                    <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                  </Pressable>
+                  <Pressable style={styles.saveButton} onPress={handleSave}>
+                    <Text style={styles.saveButtonText}>{t('common.save')}</Text>
                   </Pressable>
                 </View>
               </ScrollView>
-            </Pressable>
+            </View>
           </KeyboardAvoidingView>
-        </Pressable>
+        </View>
       </Modal>
 
       {/* Punishment Picker Modal */}
-      <Modal visible={pickerVisible} transparent animationType="slide" onRequestClose={() => setPickerVisible(false)}>
+      <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
         <Pressable style={styles.pickerOverlay} onPress={() => setPickerVisible(false)}>
           <View style={styles.pickerCard}>
-            <Text style={styles.pickerTitle}>{t('tasks.selectPunishment')}</Text>
+            <View style={styles.pickerHeader}>
+              <Text style={styles.pickerTitle}>{t('tasks.selectPunishment')}</Text>
+              <Pressable onPress={() => setPickerVisible(false)} hitSlop={10}>
+                <Text style={styles.pickerClose}>\u2715</Text>
+              </Pressable>
+            </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {punishments.map((p) => {
                 const isSelected = p.id === selectedPunishmentId;
                 return (
                   <Pressable
                     key={p.id}
-                    style={[styles.pickerRow, isSelected && styles.pickerRowSelected]}
+                    style={({ pressed }) => [
+                      styles.pickerOption,
+                      isSelected && styles.pickerOptionSelected,
+                      pressed && { backgroundColor: '#f5f5f5' }
+                    ]}
                     onPress={() => {
                       setSelectedPunishmentId(p.id);
                       setPickerVisible(false);
+                      Haptics.selectionAsync();
                     }}
                   >
-                    <Text style={styles.pickerEmoji}>{PUNISHMENT_EMOJIS[p.type]}</Text>
-                    <Text style={[styles.pickerRowTitle, isSelected && styles.pickerRowTitleSelected]}>
-                      {p.title}
-                    </Text>
-                    {isSelected && <Text style={styles.pickerCheck}>{'\u2705'}</Text>}
+                    <View style={styles.pickerOptionIconContainer}>
+                      <Text style={styles.pickerOptionEmoji}>{PUNISHMENT_EMOJIS[p.type]}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickerOptionTitle, isSelected && styles.pickerOptionTitleSelected]}>
+                        {p.title}
+                      </Text>
+                      <Text style={styles.pickerOptionMessage} numberOfLines={2}>
+                        {p.message}
+                      </Text>
+                    </View>
+                    {isSelected && <Text style={styles.pickerOptionCheck}>\u2713</Text>}
                   </Pressable>
                 );
               })}
@@ -605,365 +679,485 @@ export default function TasksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#fff',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: 24,
+    paddingTop: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
     color: '#1a1a2e',
-    marginBottom: 20,
+    marginBottom: 24,
+    letterSpacing: -0.5,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 120,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+    opacity: 0.2,
   },
   emptyText: {
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
-    marginTop: 100,
-  },
-  sectionHeader: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#555',
-    marginTop: 20,
-    marginBottom: 10,
+    lineHeight: 24,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 20,
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a2e',
+  },
+  countBadge: {
+    backgroundColor: '#6c5ce7',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  countBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   chevron: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: 14,
+    color: '#bbb',
   },
 
   // TaskCard
   taskCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    marginBottom: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   taskCardCompleted: {
-    opacity: 0.7,
+    opacity: 0.6,
+    backgroundColor: '#fff',
+    borderColor: '#f0f0f0',
   },
   accentBar: {
-    width: 4,
+    width: 6,
   },
   taskCardContent: {
     flex: 1,
-    padding: 14,
+    padding: 16,
   },
   taskCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 6,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
   taskName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#1a1a2e',
-    flexShrink: 1,
+    flex: 1,
+    marginRight: 8,
   },
   taskNameCompleted: {
     textDecorationLine: 'line-through',
     color: '#999',
   },
   lateBadge: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: '#ff4757',
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   lateBadgeText: {
     color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10,
+    fontWeight: '800',
   },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   statusBadgeLate: {
-    backgroundColor: '#fdedec',
+    backgroundColor: '#ffeef0',
   },
   statusBadgeOnTime: {
-    backgroundColor: '#eafaf1',
+    backgroundColor: '#e7f9ee',
   },
   statusBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
   },
   taskDeadline: {
     fontSize: 13,
     color: '#777',
-    marginTop: 4,
+    marginBottom: 2,
   },
   taskRemaining: {
     fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
+    fontWeight: '700',
+    marginBottom: 12,
   },
   difficultyRow: {
     flexDirection: 'row',
-    gap: 3,
-    marginTop: 8,
+    gap: 4,
+    marginBottom: 12,
   },
   difficultyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 6,
+    borderRadius: 3,
   },
   taskPunishment: {
     fontSize: 13,
-    color: '#888',
-    marginTop: 6,
+    color: '#555',
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   taskActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: 8,
-    marginTop: 10,
+    gap: 12,
+    marginTop: 4,
   },
   actionBtn: {
-    padding: 6,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#eee',
   },
   actionBtnPressed: {
-    opacity: 0.5,
+    backgroundColor: '#f0f0f0',
   },
-  completeBtn: {},
-  giveUpBtn: {},
-  deleteBtn: {},
+  completeBtn: {
+    borderColor: '#2ed573',
+  },
+  giveUpBtn: {
+    borderColor: '#ffa502',
+  },
+  deleteBtn: {
+    borderColor: '#ff4757',
+  },
   actionBtnText: {
-    fontSize: 20,
+    fontSize: 16,
   },
 
   // FAB
   fab: {
     position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#6c5ce7',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#6c5ce7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   fabText: {
-    fontSize: 28,
+    fontSize: 32,
     color: '#fff',
     fontWeight: '300',
     marginTop: -2,
   },
 
-  // Add Task Modal
+  // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContainer: {
-    maxHeight: '90%',
+    width: '100%',
   },
   modalCard: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 34,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 12,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    paddingBottom: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#e0e0e0',
+    marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#1a1a2e',
-    marginBottom: 20,
-    textAlign: 'center',
+  },
+  modalScroll: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  inputGroup: {
+    marginBottom: 24,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#555',
-    marginTop: 16,
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 10,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   textInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#1a1a2e',
-    backgroundColor: '#f9f9f9',
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  segInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
-    textAlign: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     fontSize: 16,
-    paddingVertical: 10,
     color: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  segShort: {
-    flex: 1,
-  },
-  segYear: {
-    flex: 1.5,
-  },
-  sep: {
-    fontSize: 20,
-    color: '#999',
-    marginHorizontal: 4,
-  },
-  sepWide: {
-    width: 16,
-  },
-  difficultyPicker: {
+  dateTimeContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 12,
   },
-  diffDot: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 2,
+  dateInputs: {
+    flex: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  timeInputs: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  dateInput: {
+    flex: 1,
+    paddingVertical: 16,
+    fontSize: 16,
+    color: '#1a1a2e',
+    textAlign: 'center',
+  },
+  dateSeparator: {
+    fontSize: 16,
+    color: '#ccc',
+  },
+  difficultyValue: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  difficultyContainer: {
+    paddingRight: 20,
+  },
+  difficultyOption: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#eee',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 10,
   },
-  diffDotLabel: {
-    fontSize: 10,
-    color: '#999',
-    fontWeight: '600',
-  },
-  punishmentField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    backgroundColor: '#f9f9f9',
-  },
-  punishmentSelected: {
+  difficultyText: {
     fontSize: 15,
-    color: '#1a1a2e',
-    flex: 1,
-  },
-  punishmentPlaceholder: {
-    fontSize: 15,
-    color: '#bbb',
-    flex: 1,
-  },
-  punishmentArrow: {
-    fontSize: 12,
-    color: '#999',
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 28,
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
-  },
-  cancelBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#777',
   },
-  saveBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6c5ce7',
+  punishmentSelector: {
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
   },
-  saveBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
+  selectedPunishmentContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  punishmentIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  punishmentTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a2e',
+  },
+  punishmentDesc: {
+    fontSize: 13,
+    color: '#777',
+    marginTop: 2,
+  },
+  punishmentPlaceholder: {
+    flex: 1,
+    fontSize: 16,
+    color: '#bbb',
+  },
+  selectorArrow: {
+    fontSize: 24,
+    color: '#ccc',
+    marginLeft: 8,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#777',
+  },
+  saveButton: {
+    flex: 2,
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6c5ce7',
+    shadowColor: '#6c5ce7',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
     color: '#fff',
   },
 
-  // Punishment Picker
+  // Picker
   pickerOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
   },
   pickerCard: {
+    width: '100%',
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 34,
-    maxHeight: '60%',
+    borderRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   pickerTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1a1a2e',
-    marginBottom: 12,
-    textAlign: 'center',
   },
-  pickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#eee',
-  },
-  pickerRowSelected: {
-    backgroundColor: '#f0edff',
-    borderRadius: 8,
-  },
-  pickerEmoji: {
-    fontSize: 22,
-    marginRight: 12,
-  },
-  pickerRowTitle: {
-    flex: 1,
-    fontSize: 15,
-    color: '#333',
-  },
-  pickerRowTitleSelected: {
-    color: '#6c5ce7',
+  pickerClose: {
+    fontSize: 18,
+    color: '#bbb',
     fontWeight: '600',
   },
-  pickerCheck: {
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  pickerOptionSelected: {
+    borderColor: '#6c5ce7',
+    backgroundColor: '#f0edff',
+  },
+  pickerOptionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  pickerOptionEmoji: {
+    fontSize: 22,
+  },
+  pickerOptionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 2,
+  },
+  pickerOptionTitleSelected: {
+    color: '#6c5ce7',
+  },
+  pickerOptionMessage: {
+    fontSize: 13,
+    color: '#777',
+    lineHeight: 18,
+  },
+  pickerOptionCheck: {
     fontSize: 18,
+    color: '#6c5ce7',
+    fontWeight: '700',
+    marginLeft: 8,
   },
 });
