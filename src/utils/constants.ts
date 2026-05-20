@@ -1,10 +1,17 @@
-import { Punishment } from '../types';
+import { Punishment, PunishmentType } from '../types';
 
 export const STORAGE_KEYS = {
   TASKS: 'task-storage',
   PUNISHMENTS: 'punishment-storage',
   LANGUAGE: 'language-preference',
 } as const;
+
+export const PUNISHMENT_EMOJIS: Record<PunishmentType, string> = {
+  whatsapp: '💬',
+  wallpaper: '🖼️',
+  youtube: '🎥',
+  alarm: '⏰',
+};
 
 export const DEFAULT_PUNISHMENTS: Punishment[] = [
   {

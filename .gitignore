@@ -39,3 +39,11 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# ignore expo debug
+expo_debug.txt
+expo_debug_after_install.txt
+expo_debug_V4.txt
+expo_error.txt
+expo_log.txt
+expo_verbose.txt
